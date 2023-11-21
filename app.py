@@ -8,22 +8,26 @@ APIkey = "AIzaSyCmW6n0O7MHoGKBbGxrH9LJvc0cSUx51Iw"
 youtube = build("youtube", "v3", developerKey=APIkey)
 from pprint import pprint
 st.set_page_config(page_title="Streamlit App", page_icon=":rocket:", layout="wide", initial_sidebar_state="expanded")
-st.title("YOUTUBE DATA HARVESTING")
-
-A = st.selectbox("Select a Channel", ["Select Channel ID","UCwr-evhuzGZgDFrq_1pLt_A", "UCfk1zUguz21peGdIFGKPeVg", "UCUUlw3anBIkbW9W44Y-eURw"])
+from PIL import Image
+logo_path = r"C:\Users\Senthil\Downloads\youtube.png"
+image = Image.open(logo_path)
+st.image(image, width=300)
+st.header(":red[YOUTUBE DATA HARVESTING AND WAREHOUSEING]")
+A = st.selectbox("Select a Channel", ["Select Channel ID","UCwr-evhuzGZgDFrq_1pLt_A", "UCfk1zUguz21peGdIFGKPeVg", "UCUUlw3anBIkbW9W44Y-eURw", "UCuI5XcJYynHa5k_lqDzAgwQ"])
 def channel1(A):
-  request = youtube.channels().list(
-  part="snippet,contentDetails,statistics",
-  id=A
+    try:
+        request = youtube.channels().list(
+        part="snippet,contentDetails,statistics",
+        id=A
     )
-  response = request.execute()
-  request = youtube.playlists().list(
+        response = request.execute()
+        request = youtube.playlists().list(
         part="snippet,contentDetails",
         channelId=A,
         maxResults=25
     )
-  respons = request.execute()
-  channel_1 = dict(Channel_Title= response['items'][0]['snippet']['localized']['title'],
+        respons = request.execute()
+        channel_1 = dict(Channel_Title= response['items'][0]['snippet']['localized']['title'],
                     #   channel_id = response['items'][0]['id'],
                     #   Channel_Description= response['items'][0]['snippet']['description'],
                       Channel_SubcriberCount = response['items'][0]['statistics']['subscriberCount'],
@@ -32,16 +36,33 @@ def channel1(A):
                     #   playlist_id = [respons['items'][0]['id'],respons['items'][1]['id']])
   # channel = "\n".join([f"{key} = {repr(value)}" for key, value in channel_1.items()])
 
-  return channel_1
-if A!= "Select Channel ID" and st.button('Fetch'):
-  a = channel1(A)
-  with st.spinner("Just Wiat"):
-    t.sleep(2)
-  st.write("You Selected:")
-  for key, value in a.items():
-    st.write(f"{key} = {repr(value)}")
-st.button('clear') 
-# a = st.empty()
+        return channel_1
+    except Exception as e:
+        st.error(f"Error: {'Invalid Channel ID'}", icon="🚨")
+        st.button("Clear")
+if A: 
+  if A!= "Select Channel ID" :
+    if st.button('Fetch'):
+      with st.spinner("Just Wiat..."):
+        a = channel1(A)
+        st.write("You Selected:")
+        for key, value in a.items():
+          st.write(f"{key} = {repr(value)}")
+        st.button('clear') 
+ 
+B = st.text_input("Type Channel ID")
+
+if st.button('Search'):
+    if B:
+      with st.spinner("Just Wait..."):
+        b = channel1(B)
+      if b is not None:
+        st.write("You Selected:")
+        for key, value in b.items():
+          st.write(f"{key} = {repr(value)}")
+        st.button('clear')
+    else:
+        st.warning("Please Insert A Valid YouTube Channel ID.")
 
 
 def get_channel_info(channel_id):
@@ -173,14 +194,26 @@ def channel_details(channel_id):
                      "comment_information":com_details})
     
     return "upload completed successfully"
-if st.button('Insert Data Into MongoDB'):
-  with st.spinner("Just Wiat"):
-    t.sleep(5)
-  channel_details(A)
+col1, col2 = st.columns(2)
+
+if col1.button('Insert Data Into MongoDB'):
+    with st.spinner("Please wait..."):
+        if A != "Select Channel ID":
+            result_A = channel_details(A)
+            st.success(result_A)
+        # else:
+        #     st.warning("Select A valid channels ID for data insertion.")
+        if B:
+          z = channel1(B)
+          if z is not None:
+            result_B = channel_details(B)
+            st.success(result_B)
+        # else:
+        #     st.warning(" Entered valid channels ID for data insertion.")
+        
 
 
-
-
+#MYSQL
 
 def channel_info():
   v = []
@@ -210,7 +243,7 @@ def channel_info():
   drop_query = "DROP TABLE IF EXISTS channels"
   cursor.execute(drop_query)
   create_table = """create table if not exists channel_info(
-                    Channel_Id varchar(80) ,
+                    Channel_Id varchar(80) PRIMARY KEY,
                     Channel_Name varchar(100),
                     Subscription_Count bigint,
                     Views bigint,
@@ -220,7 +253,8 @@ def channel_info():
                 )"""
   cursor.execute(create_table)
 
-  insert_info = """INSERT INTO channel_info(
+  insert_info = '''
+                    INSERT IGNORE INTO channel_info(
                     Channel_Id,
                     Channel_Name,
                     Subscription_Count,
@@ -228,7 +262,8 @@ def channel_info():
                     Total_Videos,
                     Channel_Description,
                     Playlist_Id
-                ) VALUES(%s,%s,%s,%s,%s,%s,%s)"""
+                ) VALUES(%s,%s,%s,%s,%s,%s,%s)
+                '''
 
 # Convert DataFrame to list of tuples for executemany
   data_to_insert = df.to_records(index=False).tolist()
@@ -236,7 +271,6 @@ def channel_info():
 # Use executemany to insert multiple rows
   cursor.executemany(insert_info, data_to_insert)
 
-# Commit the changes and close the connection
   connection.commit()
 
 
@@ -258,7 +292,7 @@ def video_info():
     CREATE TABLE IF NOT EXISTS videos (
         Channel_Name varchar(150),
         Channel_Id varchar(100) ,
-        Video_Id varchar(40)  , 
+        Video_Id varchar(40) PRIMARY KEY  , 
         Title TEXT, 
         Tags TEXT,
         Thumbnail varchar(225),
@@ -291,7 +325,7 @@ def video_info():
     row = row.apply(lambda x: ', '.join(x) if isinstance(x, list) else x)
 
     insert_query = '''
-        INSERT INTO videos (
+        INSERT IGNORE INTO videos (
             Channel_Name,
             Channel_Id,
             Video_Id, 
@@ -343,7 +377,7 @@ def video_info():
 
 
 def com_info():
-#   g = 7
+
   conn = pymongo.MongoClient("mongodb://localhost:27017")
   db = conn["YouTube"]
   coll1 = db["channel_details"]
@@ -361,8 +395,8 @@ def com_info():
   cursor.execute('use You_Tube4')
   drop_query = "DROP TABLE IF EXISTS comments"
   cursor.execute(drop_query)
-  create_query = '''CREATE TABLE if not exists comments(Comment_Id varchar(100) primary key,
-                       Video_Id varchar(80),
+  create_query = '''CREATE TABLE if not exists comments(Comment_Id varchar(100) PRIMARY KEY ,
+                       Video_Id varchar(80) ,
                        Comment_Text text, 
                        Comment_Author varchar(150),
                        Comment_Published varchar(50))'''
@@ -378,7 +412,7 @@ def com_info():
 
   for index, row in df3.iterrows():
             insert_query = '''
-                INSERT INTO comments (Comment_Id,
+                INSERT IGNORE INTO comments (Comment_Id,
                                       Video_Id ,
                                       Comment_Text,
                                       Comment_Author,
@@ -392,14 +426,18 @@ def com_info():
   cursor.close()
   connection.close()          
  
-if st.button('From MongoDB Data Inserted into Mysql'):
+if col2.button('From MongoDB Data Inserted into Mysql'):
   with st.spinner("Just Wiat"):
     t.sleep(5)
-  channel_info()
-  video_info()
-  com_info()
-      
-st.header('Analytics')
+    channel_info()
+    video_info()
+    com_info()
+    st.success('Successfully! From Mongodb Data Inserted Into Mysql!', icon="✅")   
+
+
+
+
+st.header(":red[Analytics!]")
 
 host = "localhost"
 user = "root"
@@ -425,7 +463,7 @@ def Q1():
   connection.close()
 if st.button('What are the names of all the videos and their corresponding channels?'):
   Q1()
-   
+  st.button('clear')
 # a = st.empty()
  
  
@@ -445,7 +483,8 @@ def Q2():
   connection.close() 
 
 if st.button('Which channels have the most number of videos, and how many videos do they have?'):
-      Q2() 
+      Q2()
+      st.button('clear') 
 
 def Q3():
   sql_query = """
@@ -456,13 +495,13 @@ def Q3():
 """
   cursor.execute(sql_query)
   result_set = cursor.fetchall()
-  for row in result_set:
-    title, channel_name, views = row
-  st.write(f"Title: {title}, Channel Name: {channel_name}, Views: {views}")
+  a = pd.DataFrame(result_set,columns=[i[0] for i in cursor.description])
+  st.write(a)
   cursor.close()
   connection.close()
 if st.button('What are the top 10 most viewed videos and their respective channels?'):
-      Q3() 
+      Q3()
+      st.button('clear') 
 
 
 def Q4():
@@ -478,6 +517,7 @@ def Q4():
   connection.close()
 if st.button('How many comments were made on each video, and what are theircorresponding video names?'):
       Q4() 
+      st.button('clear')
 
 
 def Q5():
@@ -494,7 +534,8 @@ def Q5():
   cursor.close()
   connection.close()
 if st.button('Which videos have the highest number of likes, and what are their corresponding channel names?'):
-  Q5() 
+  Q5()
+  st.button('clear') 
 
 
 def Q6():
@@ -510,6 +551,7 @@ def Q6():
   connection.close()
 if st.button('What is the total number of likes and dislikes for each video, and what are their corresponding video names?'):
       Q6() 
+      st.button('clear')
 
 
 def Q7():
@@ -528,6 +570,7 @@ def Q7():
   connection.close()
 if st.button('What is the total number of views for each channel, and what are their corresponding channel names?'):
       Q7() 
+      st.button('clear')
 
 
 
@@ -546,7 +589,8 @@ def Q8():
   cursor.close()
   connection.close()
 if st.button('What are the names of all the channels that have published videos in the year2023?'):
-      Q8() 
+      Q8()
+      st.button('clear') 
 
 
 
@@ -576,7 +620,8 @@ def Q9():
   cursor.close()
   connection.close()
 if st.button('What is the average duration of all videos in each channel, and what are their corresponding channel names?'):
-  Q9() 
+  Q9()
+  st.button('clear') 
 
 
 
@@ -595,10 +640,26 @@ def Q10():
   connection.close()
 if st.button('Which videos have the highest number of comments, and what are their corresponding channel names?'):
   Q10() 
-st.button('Clear')  
+  st.button('Clear')  
 # st.balloons() 
 st.sidebar.title("WELCOME TO YOUTUBE DATA HARVESTING AND WAREHOUSEING PROJECT USING MYSQL,MONGODB AND STREAMLIT")
+st.sidebar.title("CHANNEL IDs")
+w = ["UCwr-evhuzGZgDFrq_1pLt_A", 'UCfk1zUguz21peGdIFGKPeVg', 'UCUUlw3anBIkbW9W44Y-eURw', 'UCuI5XcJYynHa5k_lqDzAgwQ']
+for i in w:
+    st.sidebar.write(i)
 
+data = 'Pandas' ,'Mysql', 'Mongodb', 'Streamlit', 'google-api-python-client', 'Python','https://github.com/Prashanth292003/YOUTUBE-DATA-HARVESTING-AND-WAREHOUSEING-PROJECT'
+data_string = '\n'.join(data)
+st.sidebar.download_button('Download File',data_string , key='file_download' )
 
+if st.sidebar.button("Click to get Github Link"):
+  st.sidebar.write("https://github.com/Prashanth292003/YOUTUBE-DATA-HARVESTING-AND-WAREHOUSEING-PROJECT")
+  st.sidebar.button("Hide")
 
 #FINISHED
+
+
+
+
+
+
