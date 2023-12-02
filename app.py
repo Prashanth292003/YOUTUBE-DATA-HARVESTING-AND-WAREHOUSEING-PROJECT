@@ -627,9 +627,10 @@ if st.button('What is the average duration of all videos in each channel, and wh
 
 def Q10():
   sql_query = """
-    SELECT Channel_Name, MAX(Comments) as MaxComments
+    SELECT Channel_Name, Title, Comments
     FROM videos
-    GROUP BY Channel_Name;
+    ORDER BY Comments
+    limit 3;
     
 """
   cursor.execute(sql_query)
