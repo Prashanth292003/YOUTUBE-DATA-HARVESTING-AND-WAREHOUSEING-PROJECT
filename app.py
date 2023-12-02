@@ -9,7 +9,7 @@ youtube = build("youtube", "v3", developerKey=APIkey)
 from pprint import pprint
 st.set_page_config(page_title="Streamlit App", page_icon=":rocket:", layout="wide", initial_sidebar_state="expanded")
 from PIL import Image
-logo_path = r"C:\Users\Senthil\Downloads\youtube.png"
+logo_path = r"C:\Users\Senthil\Desktop\DS\Projects I & V\youtube.png"
 image = Image.open(logo_path)
 st.image(image, width=300)
 st.header(":red[YOUTUBE DATA HARVESTING AND WAREHOUSEING]")
@@ -627,10 +627,10 @@ if st.button('What is the average duration of all videos in each channel, and wh
 
 def Q10():
   sql_query = """
-    SELECT Channel_Name, Title, Comments
+    SELECT Channel_Name, MAX(Comments) as MaxComments
     FROM videos
-    ORDER BY Comments DESC
-    LIMIT 1;
+    GROUP BY Channel_Name;
+    
 """
   cursor.execute(sql_query)
   result_set = cursor.fetchall()
