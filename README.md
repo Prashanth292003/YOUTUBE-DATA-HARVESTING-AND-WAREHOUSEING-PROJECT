@@ -1,5 +1,6 @@
 # YOUTUBE-DATA-HARVESTING-AND-WAREHOUSEING-PROJECT
-YOUTUBE DATA HARVESTING AND WAREHOUSEING PROJECT USING MYSQL,MONGODB AND STREAMLIT
+YOUTUBE DATA HARVESTING AND WAREHOUSEING PROJECT USING PYTHON, MYSQL,MONGODB,API AND STREAMLIT
+YouTube data harvesting involves the unauthorized collection of user information from the platform, raising privacy concerns. This practice often includes extracting personal details and preferences without explicit user consent, posing risks of misuse for targeted advertising or other purposes. Users should be cautious and aware of privacy implications when engaging with YouTube and similar online platforms.
 
 Python scripting: You will gain proficiency in Python programming by developing scripts to interact with the YouTube API, fetch data, and process it for storage and analysis.
 
